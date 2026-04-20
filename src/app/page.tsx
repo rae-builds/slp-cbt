@@ -19,6 +19,9 @@ export default function CBTApp() {
     isFinished: false,
   });
 
+  const [showVolumePopup, setShowVolumePopup] = useState(false);
+  const [volume, setVolume] = useState(50);
+
   // Timer logic
   useEffect(() => {
     const timer = setInterval(() => {
@@ -75,7 +78,7 @@ export default function CBTApp() {
 
   const handleHighlight = (questionId: number, e: React.MouseEvent) => {
     if (state.highlighterMode !== 'on') return;
-    
+
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
 
@@ -83,10 +86,10 @@ export default function CBTApp() {
     const span = document.createElement('span');
     span.className = 'cbt-highlight';
     span.style.backgroundColor = '#DFFF00';
-    
+
     try {
       range.surroundContents(span);
-      
+
       // Save updated HTML to state
       const target = e.currentTarget as HTMLElement;
       const textContainer = target.querySelector('.question-text');
@@ -109,7 +112,7 @@ export default function CBTApp() {
     // If questionId is provided, clear only that. If not, it's a bit harder with the current DOM-based approach.
     // But since the user wants the button to clear the current view:
     const qIdsToClear = questionId ? [questionId] : (
-      state.layout === '2-pane' 
+      state.layout === '2-pane'
         ? [mockQuestions[state.currentQuestionIndex].id, mockQuestions[state.currentQuestionIndex + 1]?.id].filter(Boolean)
         : [mockQuestions[state.currentQuestionIndex].id]
     );
@@ -144,13 +147,13 @@ export default function CBTApp() {
   const navigate = (direction: 'next' | 'prev') => {
     setState((prev) => {
       const step = prev.layout === '2-pane' ? 2 : 1;
-      let nextIndex = direction === 'next' 
+      let nextIndex = direction === 'next'
         ? prev.currentQuestionIndex + step
         : prev.currentQuestionIndex - step;
-      
+
       // Boundary check
       nextIndex = Math.max(0, Math.min(mockQuestions.length - 1, nextIndex));
-      
+
       // In 2-pane mode, ensure we start at an even index (0, 2, 4...) for consistent pairing
       if (prev.layout === '2-pane') {
         nextIndex = Math.floor(nextIndex / 2) * 2;
@@ -165,8 +168,8 @@ export default function CBTApp() {
     setState(prev => ({
       ...prev,
       layout: newLayout,
-      currentQuestionIndex: newLayout === '2-pane' 
-        ? Math.floor(prev.currentQuestionIndex / 2) * 2 
+      currentQuestionIndex: newLayout === '2-pane'
+        ? Math.floor(prev.currentQuestionIndex / 2) * 2
         : prev.currentQuestionIndex
     }));
   };
@@ -191,31 +194,17 @@ export default function CBTApp() {
   }
 
   const renderQuestion = (q: Question) => (
-    <div 
-      key={q.id} 
-      className={`question-content ${state.highlighterMode === 'on' ? 'cursor-pencil' : ''}`} 
-      style={{ flex: 1, padding: '20px', borderRight: state.layout === '2-pane' ? '1px solid #eee' : 'none' }}
+    <div
+      key={q.id}
+      className={`question-content ${state.highlighterMode === 'on' ? 'cursor-pencil' : ''}`}
+      style={{ flex: 1, padding: '40px 0', borderRight: state.layout === '2-pane' ? '1px solid #eee' : 'none' }}
       onMouseUp={(e) => handleHighlight(q.id, e)}
     >
-      <div className="question-header">
-        <h2 className="question-title">문항풀이 연습</h2>
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
-          <div className="highlighter-btns">
-            <button 
-              className={`tool-btn-small ${state.highlighterMode === 'on' ? 'active-green' : ''}`}
-              onClick={() => setState(prev => ({ ...prev, highlighterMode: prev.highlighterMode === 'on' ? 'off' : 'on' }))}
-            >
-              형광펜<br/>{state.highlighterMode === 'on' ? '꺼짐' : '켜짐'}
-            </button>
-            <button 
-              className="tool-btn-small"
-              onClick={() => clearAllHighlights(q.id)}
-            >
-              형광펜<br/>지우기
-            </button>
-          </div>
-          <div className="tool-btns">
-            <button 
+      <div className="question-inner">
+        <div className="question-header-row">
+          <h2 className="question-title-main">문항풀이 연습</h2>
+          <div className="tool-btns-top">
+            <button
               className={`tool-btn ${state.markedQuestions.has(q.id) ? 'active' : ''}`}
               onClick={() => toggleMark(q.id)}
             >
@@ -228,51 +217,105 @@ export default function CBTApp() {
             </button>
           </div>
         </div>
-      </div>
-      
-      <div className="question-instruction">가장 적합한 답을 하나만 고르시오.</div>
 
-      <div className="question-text-container">
-        <div className="question-num-wrapper">
-          {state.markedQuestions.has(q.id) && <span className="red-check-main">✓</span>}
-          <span className="question-num">{q.number}.</span>
-        </div>
-        <div 
-          className="question-text"
-          dangerouslySetInnerHTML={{ 
-            __html: state.highlightedContent[q.id] || (q.subQuestion || q.question) 
-          }}
-        />
-      </div>
+        <div className="question-instruction">가장 적합한 답을 하나만 고르시오.</div>
 
-      {q.mediaUrl && (
-        <div className="media-container">
-          {q.type === 'image' ? <img src={q.mediaUrl} alt="Media" /> : <video controls src={q.mediaUrl} />}
-          <div style={{ marginTop: '5px', fontSize: '0.8rem', color: '#666' }}>[ 사진 1 ]</div>
-        </div>
-      )}
-
-      <div className="options-list">
-        {q.options.map((option) => {
-          const isWrong = state.wrongAnswers[q.id]?.has(option.id);
-          return (
-            <div key={option.id} className="option-row">
-              <div className={`option-item ${state.answers[q.id] === option.id ? 'selected' : ''}`} onClick={() => handleAnswerSelect(q.id, option.id)}>
-                <div className="option-radio">{option.id}</div>
-                <div className={`option-text ${isWrong ? 'wrong-mark' : ''}`}>{option.text}</div>
-              </div>
-              <button 
-                className={`wrong-btn ${isWrong ? 'active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleWrongAnswer(q.id, option.id);
-                }}
-              >
-                {isWrong ? '해제' : '오답'}
-              </button>
+        <div className="question-main-container">
+          <div className="question-text-container">
+            <div className="question-num-wrapper">
+              {state.markedQuestions.has(q.id) && <span className="red-check-main">✓</span>}
+              <span className="question-num">{q.number}.</span>
             </div>
-          );
-        })}
+            <div
+              className="question-text"
+              dangerouslySetInnerHTML={{
+                __html: state.highlightedContent[q.id] || (q.subQuestion || q.question)
+              }}
+            />
+          </div>
+
+          <div className="highlighter-btns-side">
+            <button
+              className={`tool-btn-small ${state.highlighterMode === 'on' ? 'active-green' : ''}`}
+              onClick={() => setState(prev => ({ ...prev, highlighterMode: prev.highlighterMode === 'on' ? 'off' : 'on' }))}
+            >
+              형광펜<br />{state.highlighterMode === 'on' ? '꺼짐' : '켜짐'}
+            </button>
+            <button
+              className="tool-btn-small"
+              onClick={() => clearAllHighlights(q.id)}
+            >
+              형광펜<br />지우기
+            </button>
+          </div>
+        </div>
+
+        {q.mediaUrl && (
+          <div className="media-container">
+            {q.type === 'image' ? (
+              <img src={q.mediaUrl} alt="Media" style={{ maxWidth: '400px', height: 'auto' }} />
+            ) : (
+              <div className="video-section">
+                <video
+                  autoPlay
+                  muted
+                  controls
+                  src={q.mediaUrl}
+                  style={{ width: '100%', maxWidth: '600px' }}
+                />
+                <div className="video-controls-row">
+                  <span className="video-info-text">이 영상은 소리가 포함되어 있습니다.</span>
+                  <div className="volume-control-wrapper">
+                    <button className="volume-toggle-btn" onClick={() => setShowVolumePopup(!showVolumePopup)}>
+                      PC 볼륨 조절 ▾
+                    </button>
+                    {showVolumePopup && (
+                      <div className="volume-popup">
+                        <div className="volume-popup-header">
+                          PC 마스터 볼륨 조절 <span className="volume-warning">(* 튜토리얼에서는 작동하지 않습니다.)</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={volume}
+                          onChange={(e) => setVolume(Number(e.target.value))}
+                          className="volume-slider"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            {q.type === 'image' && <div style={{ marginTop: '5px', fontSize: '0.8rem', color: '#666' }}>[ 사진 1 ]</div>}
+          </div>
+        )}
+
+        <div className="options-list">
+          {q.options.map((option) => {
+            const isWrong = state.wrongAnswers[q.id]?.has(option.id);
+            return (
+              <div key={option.id} className="option-row">
+                <div className={`option-item ${state.answers[q.id] === option.id ? 'selected' : ''}`} onClick={() => handleAnswerSelect(q.id, option.id)}>
+                  <div className="option-radio">{option.id}</div>
+                  <div className={`option-text ${isWrong ? 'wrong-mark' : ''}`}>{option.text}</div>
+                </div>
+                <div className="wrong-btn-wrapper">
+                  <button
+                    className={`wrong-btn ${isWrong ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWrongAnswer(q.id, option.id);
+                    }}
+                  >
+                    {isWrong ? '해제' : '오답'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -288,30 +331,37 @@ export default function CBTApp() {
           </div>
           <h1 className="cbt-title">보건의료인 CBT 문항풀이 연습</h1>
         </div>
-        <div className="cbt-controls">
-          <div className="font-control">
-            <span className="font-label-main">글자<br/>크기</span>
-            <div className="font-item">
-              <button className={`font-btn font-btn-small ${state.fontSize === 80 ? 'active' : ''}`} onClick={() => setState(prev => ({ ...prev, fontSize: 80 }))}>가</button>
-              <span className="font-percentage">80%</span>
-            </div>
-            <div className="font-item">
-              <button className={`font-btn font-btn-medium ${state.fontSize === 100 ? 'active' : ''}`} onClick={() => setState(prev => ({ ...prev, fontSize: 100 }))}>가</button>
-              <span className="font-percentage">100%</span>
-            </div>
-            <div className="font-item">
-              <button className={`font-btn font-btn-large ${state.fontSize === 125 ? 'active' : ''}`} onClick={() => setState(prev => ({ ...prev, fontSize: 125 }))}>가</button>
-              <span className="font-percentage">125%</span>
-            </div>
-          </div>
-          <div className="layout-control" style={{ marginLeft: '15px' }}>
-            <span className="font-label-main">화면<br/>배치</span>
-            <div style={{ display: 'flex', gap: '5px' }}>
+        <div className="cbt-header-right">
+          <div className="cbt-controls">
+            <div className="font-control">
+              <span className="font-label-main">글자<br />크기</span>
               <div className="font-item">
-                <button className={`layout-btn-text ${state.layout === '1-pane' ? 'active' : ''}`} onClick={() => toggleLayout('1-pane')}>1단 보기</button>
+                <button className={`font-btn ${state.fontSize === 80 ? 'active' : ''}`} onClick={() => setState(prev => ({ ...prev, fontSize: 80 }))}>가</button>
+                <span className="font-percentage">80%</span>
               </div>
               <div className="font-item">
-                <button className={`layout-btn-text ${state.layout === '2-pane' ? 'active' : ''}`} onClick={() => toggleLayout('2-pane')}>2단 보기</button>
+                <button className={`font-btn ${state.fontSize === 100 ? 'active' : ''}`} onClick={() => setState(prev => ({ ...prev, fontSize: 100 }))}>가</button>
+                <span className="font-percentage">100%</span>
+              </div>
+              <div className="font-item">
+                <button className={`font-btn ${state.fontSize === 125 ? 'active' : ''}`} onClick={() => setState(prev => ({ ...prev, fontSize: 125 }))}>가</button>
+                <span className="font-percentage">125%</span>
+              </div>
+            </div>
+
+            <div className="header-separator"></div>
+
+            <div className="header-tool">
+              <span className="font-label-main">화면<br />배치</span>
+              <div className="layout-switcher">
+                <div className="layout-item" onClick={() => setState(prev => ({ ...prev, layout: '1-pane' }))}>
+                  <div className={`layout-icon pane-1 ${state.layout === '1-pane' ? 'selected' : ''}`}></div>
+                  <span className="layout-label">1단 보기</span>
+                </div>
+                <div className="layout-item" onClick={() => setState(prev => ({ ...prev, layout: '2-pane' }))}>
+                  <div className={`layout-icon pane-2 ${state.layout === '2-pane' ? 'selected' : ''}`}></div>
+                  <span className="layout-label">2단 보기</span>
+                </div>
               </div>
             </div>
           </div>
@@ -357,9 +407,11 @@ export default function CBTApp() {
           <button className="footer-btn">🎨 그림판</button>
         </div>
         <div className="footer-center" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button className="footer-btn-nav" onClick={() => navigate('prev')} disabled={state.currentQuestionIndex === 0}>◀ 이전</button>
+          {state.currentQuestionIndex > 0 && (
+            <button className="footer-btn-nav" onClick={() => navigate('prev')}>◀ 이전</button>
+          )}
           <span style={{ fontWeight: 'bold' }}>
-            {state.layout === '2-pane' 
+            {state.layout === '2-pane'
               ? `${state.currentQuestionIndex + 1}-${Math.min(state.currentQuestionIndex + 2, mockQuestions.length)} / ${mockQuestions.length}`
               : `${state.currentQuestionIndex + 1} / ${mockQuestions.length}`
             }
