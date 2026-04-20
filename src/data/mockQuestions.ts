@@ -12,7 +12,8 @@ export const mockQuestions: Question[] = [
       { id: 4, text: "미용사" },
       { id: 5, text: "영양사" }
     ],
-    correctAnswer: 4
+    correctAnswer: 4,
+    type: 'text'
   },
   {
     id: 2,
