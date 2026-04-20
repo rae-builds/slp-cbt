@@ -41,6 +41,18 @@ export default function CBTApp() {
     }));
   };
 
+  const toggleMark = (questionId: number) => {
+    setState((prev) => {
+      const newMarked = new Set(prev.markedQuestions);
+      if (newMarked.has(questionId)) {
+        newMarked.delete(questionId);
+      } else {
+        newMarked.add(questionId);
+      }
+      return { ...prev, markedQuestions: newMarked };
+    });
+  };
+
   const navigate = (direction: 'next' | 'prev') => {
     setState((prev) => {
       const step = prev.layout === '2-pane' ? 2 : 1;
@@ -92,16 +104,33 @@ export default function CBTApp() {
 
   const renderQuestion = (q: Question) => (
     <div key={q.id} className="question-content" style={{ flex: 1, padding: '20px', borderRight: state.layout === '2-pane' ? '1px solid #eee' : 'none' }}>
-      <div className="question-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 className="question-title">{q.question}</h2>
-        <div className="tool-btns" style={{ display: 'flex', gap: '5px' }}>
-          <button className="font-btn" style={{fontSize: '0.7rem', width: 'auto', padding: '0 5px'}}>✅ 체크문제</button>
-          <button className="font-btn" style={{fontSize: '0.7rem', width: 'auto', padding: '0 5px'}}>📝 메모</button>
+      <div className="question-header">
+        <h2 className="question-title">문항풀이 연습</h2>
+        <div className="tool-btns">
+          <button 
+            className={`tool-btn ${state.markedQuestions.has(q.id) ? 'active' : ''}`}
+            onClick={() => toggleMark(q.id)}
+          >
+            <span className={`tool-icon-check ${state.markedQuestions.has(q.id) ? 'active' : ''}`}>✓</span>
+            <span className="tool-text">체크문제</span>
+          </button>
+          <button className="tool-btn">
+            <span className="tool-icon-memo">📝</span>
+            <span className="tool-text">메모</span>
+          </button>
         </div>
       </div>
       
-      <div className="question-text" style={{ whiteSpace: 'pre-wrap', marginBottom: '20px' }}>
-        {q.number}. {q.subQuestion || q.question}
+      <div className="question-instruction">가장 적합한 답을 하나만 고르시오.</div>
+
+      <div className="question-text-container">
+        <div className="question-num-wrapper">
+          {state.markedQuestions.has(q.id) && <span className="red-check-main">✓</span>}
+          <span className="question-num">{q.number}.</span>
+        </div>
+        <div className="question-text">
+          {q.subQuestion || q.question}
+        </div>
       </div>
 
       {q.mediaUrl && (
@@ -175,9 +204,16 @@ export default function CBTApp() {
         <aside className="answer-sheet">
           <div className="answer-sheet-header">답 안 표 기 란</div>
           <div className="answer-grid">
-            {mockQuestions.map((q) => (
+            {mockQuestions.map((q, index) => (
               <div key={q.id} className="answer-row">
-                <div className="answer-row-num">{String(q.number).padStart(2, '0')}</div>
+                <div className="answer-row-left">
+                  <div className="check-column">
+                    {state.markedQuestions.has(q.id) && <span className="red-check-small">✓</span>}
+                  </div>
+                  <div className="answer-row-num">
+                    {String(q.number).padStart(2, '0')}
+                  </div>
+                </div>
                 <div className="answer-options-small">
                   {[1, 2, 3, 4, 5].map((num) => (
                     <div key={num} className={`option-circle-small ${state.answers[q.id] === num ? 'selected' : ''}`} onClick={() => handleAnswerSelect(q.id, num)}>{num}</div>
@@ -206,7 +242,7 @@ export default function CBTApp() {
         </div>
         <div className="footer-right">
           <div className="status-badge">📄 전체 문제 ({mockQuestions.length})</div>
-          <div className="status-badge">✔️ 체크 문제 (0)</div>
+          <div className="status-badge">✔️ 체크 문제 ({state.markedQuestions.size})</div>
           <div className="status-badge">📓 안푼 문제 ({unansweredCount})</div>
           <button className="exit-btn" onClick={() => setState(prev => ({ ...prev, isFinished: true }))}>↪ 연습 종료</button>
         </div>
