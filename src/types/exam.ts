@@ -20,9 +20,12 @@ export interface ExamState {
   currentQuestionIndex: number;
   answers: Record<number, number | null>; // questionId -> optionId
   markedQuestions: Set<number>;
+  wrongAnswers: Record<number, Set<number>>; // questionId -> Set of optionIds
+  highlightedContent: Record<number, string>; // questionId -> HTML with marks
   memos: Record<number, string>;
   timeLeft: number; // in seconds
   fontSize: number; // 80, 100, 125
   layout: '1-pane' | '2-pane';
+  highlighterMode: 'on' | 'off' | 'erase';
   isFinished: boolean;
 }

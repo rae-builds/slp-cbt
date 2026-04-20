@@ -260,6 +260,37 @@ button {
   transition: all 0.2s;
 }
 
+.tool-btn-small {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 40px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  line-height: 1.1;
+  color: #4a5568;
+  transition: all 0.2s;
+}
+
+.tool-btn-small.active-green {
+  background-color: #DFFF00;
+  border-color: #a0aec0;
+}
+
+.tool-btn-small.active-grey {
+  background-color: #cbd5e0;
+}
+
+.highlighter-btns {
+  display: flex;
+  gap: 5px;
+}
+
 .tool-btn:hover {
   background-color: #e2e8f0;
 }
@@ -392,18 +423,49 @@ button {
 .options-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
   margin-top: 30px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .option-item {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 15px;
   cursor: pointer;
-  padding: 10px;
+  padding: 8px 10px;
   border-radius: 8px;
   transition: background 0.2s;
+}
+
+.wrong-mark {
+  text-decoration: line-through;
+  text-decoration-color: #e53e3e;
+  text-decoration-thickness: 2px;
+}
+
+.wrong-btn {
+  background-color: #f1f5f9;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  min-width: 50px;
+}
+
+.wrong-btn.active {
+  background-color: #FF8C00;
+  color: white;
+  border-color: #e67e00;
 }
 
 .option-item:hover {
@@ -478,4 +540,17 @@ button {
   padding: 5px 15px;
   border-radius: 4px;
   border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Highlighter Cursors */
+.cursor-pencil {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' style='font-size: 24px'><g transform='scale(-1, 1) translate(-28, 0)'><text y='20'>✏️</text></g></svg>") 24 20, auto !important;
+}
+
+.cbt-highlight {
+  transition: background-color 0.2s;
+}
+
+.cbt-highlight:hover {
+  filter: brightness(0.9);
 }

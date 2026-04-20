@@ -9,10 +9,13 @@ export default function CBTApp() {
     currentQuestionIndex: 0,
     answers: {},
     markedQuestions: new Set(),
+    wrongAnswers: {},
+    highlightedContent: {},
     memos: {},
     timeLeft: 3600,
     fontSize: 100,
-    layout: '1-pane', // '1-pane' (1문제) or '2-pane' (2문제)
+    layout: '1-pane',
+    highlighterMode: 'off',
     isFinished: false,
   });
 
@@ -52,6 +55,91 @@ export default function CBTApp() {
       return { ...prev, markedQuestions: newMarked };
     });
   };
+
+  const toggleWrongAnswer = (questionId: number, optionId: number) => {
+    setState((prev) => {
+      const newWrong = { ...prev.wrongAnswers };
+      if (!newWrong[questionId]) {
+        newWrong[questionId] = new Set();
+      }
+      const optionSet = new Set(newWrong[questionId]);
+      if (optionSet.has(optionId)) {
+        optionSet.delete(optionId);
+      } else {
+        optionSet.add(optionId);
+      }
+      newWrong[questionId] = optionSet;
+      return { ...prev, wrongAnswers: newWrong };
+    });
+  };
+
+  const handleHighlight = (questionId: number, e: React.MouseEvent) => {
+    if (state.highlighterMode !== 'on') return;
+    
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+
+    const range = selection.getRangeAt(0);
+    const span = document.createElement('span');
+    span.className = 'cbt-highlight';
+    span.style.backgroundColor = '#DFFF00';
+    
+    try {
+      range.surroundContents(span);
+      
+      // Save updated HTML to state
+      const target = e.currentTarget as HTMLElement;
+      const textContainer = target.querySelector('.question-text');
+      if (textContainer) {
+        setState(prev => ({
+          ...prev,
+          highlightedContent: {
+            ...prev.highlightedContent,
+            [questionId]: textContainer.innerHTML
+          }
+        }));
+      }
+    } catch (e) {
+      console.log("Cannot highlight across multiple elements");
+    }
+    selection.removeAllRanges();
+  };
+
+  const clearAllHighlights = (questionId?: number) => {
+    // If questionId is provided, clear only that. If not, it's a bit harder with the current DOM-based approach.
+    // But since the user wants the button to clear the current view:
+    const qIdsToClear = questionId ? [questionId] : (
+      state.layout === '2-pane' 
+        ? [mockQuestions[state.currentQuestionIndex].id, mockQuestions[state.currentQuestionIndex + 1]?.id].filter(Boolean)
+        : [mockQuestions[state.currentQuestionIndex].id]
+    );
+
+    setState(prev => {
+      const newContent = { ...prev.highlightedContent };
+      qIdsToClear.forEach(id => delete newContent[id as number]);
+      return { ...prev, highlightedContent: newContent };
+    });
+
+    // Also clear from DOM immediately for visual feedback
+    const highlights = document.querySelectorAll('.cbt-highlight');
+    highlights.forEach(h => {
+      const parent = h.parentNode;
+      if (parent) {
+        while (h.firstChild) parent.insertBefore(h.firstChild, h);
+        parent.removeChild(h);
+      }
+    });
+  };
+
+  useEffect(() => {
+    // We no longer clear all highlights when switching mode to 'off'
+    // as per the latest instruction: keep highlights when off.
+  }, [state.highlighterMode]);
+
+  useEffect(() => {
+    // Mode-based individual erase is removed. 
+    // Erase is now an immediate action via the button.
+  }, [state.highlighterMode]);
 
   const navigate = (direction: 'next' | 'prev') => {
     setState((prev) => {
@@ -103,21 +191,42 @@ export default function CBTApp() {
   }
 
   const renderQuestion = (q: Question) => (
-    <div key={q.id} className="question-content" style={{ flex: 1, padding: '20px', borderRight: state.layout === '2-pane' ? '1px solid #eee' : 'none' }}>
+    <div 
+      key={q.id} 
+      className={`question-content ${state.highlighterMode === 'on' ? 'cursor-pencil' : ''}`} 
+      style={{ flex: 1, padding: '20px', borderRight: state.layout === '2-pane' ? '1px solid #eee' : 'none' }}
+      onMouseUp={(e) => handleHighlight(q.id, e)}
+    >
       <div className="question-header">
         <h2 className="question-title">문항풀이 연습</h2>
-        <div className="tool-btns">
-          <button 
-            className={`tool-btn ${state.markedQuestions.has(q.id) ? 'active' : ''}`}
-            onClick={() => toggleMark(q.id)}
-          >
-            <span className={`tool-icon-check ${state.markedQuestions.has(q.id) ? 'active' : ''}`}>✓</span>
-            <span className="tool-text">체크문제</span>
-          </button>
-          <button className="tool-btn">
-            <span className="tool-icon-memo">📝</span>
-            <span className="tool-text">메모</span>
-          </button>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+          <div className="highlighter-btns">
+            <button 
+              className={`tool-btn-small ${state.highlighterMode === 'on' ? 'active-green' : ''}`}
+              onClick={() => setState(prev => ({ ...prev, highlighterMode: prev.highlighterMode === 'on' ? 'off' : 'on' }))}
+            >
+              형광펜<br/>{state.highlighterMode === 'on' ? '꺼짐' : '켜짐'}
+            </button>
+            <button 
+              className="tool-btn-small"
+              onClick={() => clearAllHighlights(q.id)}
+            >
+              형광펜<br/>지우기
+            </button>
+          </div>
+          <div className="tool-btns">
+            <button 
+              className={`tool-btn ${state.markedQuestions.has(q.id) ? 'active' : ''}`}
+              onClick={() => toggleMark(q.id)}
+            >
+              <span className={`tool-icon-check ${state.markedQuestions.has(q.id) ? 'active' : ''}`}>✓</span>
+              <span className="tool-text">체크문제</span>
+            </button>
+            <button className="tool-btn">
+              <span className="tool-icon-memo">📝</span>
+              <span className="tool-text">메모</span>
+            </button>
+          </div>
         </div>
       </div>
       
@@ -128,9 +237,12 @@ export default function CBTApp() {
           {state.markedQuestions.has(q.id) && <span className="red-check-main">✓</span>}
           <span className="question-num">{q.number}.</span>
         </div>
-        <div className="question-text">
-          {q.subQuestion || q.question}
-        </div>
+        <div 
+          className="question-text"
+          dangerouslySetInnerHTML={{ 
+            __html: state.highlightedContent[q.id] || (q.subQuestion || q.question) 
+          }}
+        />
       </div>
 
       {q.mediaUrl && (
@@ -141,12 +253,26 @@ export default function CBTApp() {
       )}
 
       <div className="options-list">
-        {q.options.map((option) => (
-          <div key={option.id} className={`option-item ${state.answers[q.id] === option.id ? 'selected' : ''}`} onClick={() => handleAnswerSelect(q.id, option.id)}>
-            <div className="option-radio">{option.id}</div>
-            <div className="option-text">{option.text}</div>
-          </div>
-        ))}
+        {q.options.map((option) => {
+          const isWrong = state.wrongAnswers[q.id]?.has(option.id);
+          return (
+            <div key={option.id} className="option-row">
+              <div className={`option-item ${state.answers[q.id] === option.id ? 'selected' : ''}`} onClick={() => handleAnswerSelect(q.id, option.id)}>
+                <div className="option-radio">{option.id}</div>
+                <div className={`option-text ${isWrong ? 'wrong-mark' : ''}`}>{option.text}</div>
+              </div>
+              <button 
+                className={`wrong-btn ${isWrong ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleWrongAnswer(q.id, option.id);
+                }}
+              >
+                {isWrong ? '해제' : '오답'}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
