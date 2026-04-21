@@ -17,7 +17,62 @@ export default function CBTApp() {
     layout: '1-pane',
     highlighterMode: 'off',
     isFinished: false,
+    showCalculator: false,
   });
+
+  const [calcState, setCalcState] = useState({
+    display: '0',
+    prevValue: null as number | null,
+    operator: null as string | null,
+    waitingForOperand: false
+  });
+
+  const handleCalcNumber = (num: string) => {
+    setCalcState(prev => {
+      const display = prev.waitingForOperand || prev.display === '0' ? num : prev.display + num;
+      return { ...prev, display, waitingForOperand: false };
+    });
+  };
+
+  const handleCalcOperator = (op: string) => {
+    setCalcState(prev => {
+      const current = parseFloat(prev.display);
+      if (prev.prevValue === null) {
+        return { ...prev, prevValue: current, operator: op, waitingForOperand: true };
+      }
+      if (prev.operator) {
+        const result = performCalculation(prev.prevValue, current, prev.operator);
+        return { ...prev, display: String(result), prevValue: result, operator: op, waitingForOperand: true };
+      }
+      return { ...prev, operator: op, waitingForOperand: true };
+    });
+  };
+
+  const performCalculation = (first: number, second: number, op: string) => {
+    switch (op) {
+      case '+': return first + second;
+      case '-': return first - second;
+      case '*': return first * second;
+      case '/': return first / second;
+      default: return second;
+    }
+  };
+
+  const handleCalcEquals = () => {
+    setCalcState(prev => {
+      if (prev.operator && prev.prevValue !== null) {
+        const current = parseFloat(prev.display);
+        const result = performCalculation(prev.prevValue, current, prev.operator);
+        return { ...prev, display: String(result), prevValue: null, operator: null, waitingForOperand: true };
+      }
+      return prev;
+    });
+  };
+
+  const handleCalcClear = () => setCalcState({ display: '0', prevValue: null, operator: null, waitingForOperand: false });
+  const handleCalcBS = () => setCalcState(prev => ({ ...prev, display: prev.display.length > 1 ? prev.display.slice(0, -1) : '0' }));
+  const handleCalcPercent = () => setCalcState(prev => ({ ...prev, display: String(parseFloat(prev.display) / 100) }));
+  const handleCalcDot = () => setCalcState(prev => ({ ...prev, display: prev.display.includes('.') ? prev.display : prev.display + '.' }));
 
   const [showVolumePopup, setShowVolumePopup] = useState(false);
   const [volume, setVolume] = useState(50);
@@ -109,8 +164,6 @@ export default function CBTApp() {
   };
 
   const clearAllHighlights = (questionId?: number) => {
-    // If questionId is provided, clear only that. If not, it's a bit harder with the current DOM-based approach.
-    // But since the user wants the button to clear the current view:
     const qIdsToClear = questionId ? [questionId] : (
       state.layout === '2-pane'
         ? [mockQuestions[state.currentQuestionIndex].id, mockQuestions[state.currentQuestionIndex + 1]?.id].filter(Boolean)
@@ -253,7 +306,7 @@ export default function CBTApp() {
         {q.mediaUrl && (
           <div className="media-container">
             {q.type === 'image' ? (
-              <img src={q.mediaUrl} alt="Media" style={{ maxWidth: '400px', height: 'auto' }} />
+              <img src={q.mediaUrl} alt="Media" />
             ) : (
               <div className="video-section">
                 <video
@@ -261,7 +314,6 @@ export default function CBTApp() {
                   muted
                   controls
                   src={q.mediaUrl}
-                  style={{ width: '100%', maxWidth: '600px' }}
                 />
                 <div className="video-controls-row">
                   <span className="video-info-text">이 영상은 소리가 포함되어 있습니다.</span>
@@ -288,7 +340,7 @@ export default function CBTApp() {
                 </div>
               </div>
             )}
-            {q.type === 'image' && <div style={{ marginTop: '5px', fontSize: '0.8rem', color: '#666' }}>[ 사진 1 ]</div>}
+            {q.type === 'image' && <div style={{ marginTop: '10px', fontSize: '0.9em', color: '#333', fontWeight: '500' }}>[사진1]</div>}
           </div>
         )}
 
@@ -321,7 +373,7 @@ export default function CBTApp() {
   );
 
   return (
-    <div className="cbt-container" style={{ fontSize: `${state.fontSize}%` }}>
+    <div className="cbt-container">
       <header className="cbt-header">
         <div className="cbt-header-left">
           <div className="cbt-exam-number">01</div>
@@ -354,11 +406,11 @@ export default function CBTApp() {
             <div className="header-tool">
               <span className="font-label-main">화면<br />배치</span>
               <div className="layout-switcher">
-                <div className="layout-item" onClick={() => setState(prev => ({ ...prev, layout: '1-pane' }))}>
+                <div className="layout-item" onClick={() => toggleLayout('1-pane')}>
                   <div className={`layout-icon pane-1 ${state.layout === '1-pane' ? 'selected' : ''}`}></div>
                   <span className="layout-label">1단 보기</span>
                 </div>
-                <div className="layout-item" onClick={() => setState(prev => ({ ...prev, layout: '2-pane' }))}>
+                <div className="layout-item" onClick={() => toggleLayout('2-pane')}>
                   <div className={`layout-icon pane-2 ${state.layout === '2-pane' ? 'selected' : ''}`}></div>
                   <span className="layout-label">2단 보기</span>
                 </div>
@@ -370,7 +422,7 @@ export default function CBTApp() {
       </header>
 
       <main className="cbt-main">
-        <section className="question-area" style={{ display: 'flex', flex: 1, padding: 0 }}>
+        <section className="question-area" style={{ display: 'flex', flex: 1, padding: 0, fontSize: `${state.fontSize}%` }}>
           {renderQuestion(mockQuestions[state.currentQuestionIndex])}
           {state.layout === '2-pane' && state.currentQuestionIndex + 1 < mockQuestions.length && (
             renderQuestion(mockQuestions[state.currentQuestionIndex + 1])
@@ -399,11 +451,48 @@ export default function CBTApp() {
             ))}
           </div>
         </aside>
+
+        {state.showCalculator && (
+          <div className="calculator-popup">
+            <div className="calc-header">
+              <span>계산기</span>
+              <button className="calc-close" onClick={() => setState(prev => ({ ...prev, showCalculator: false }))}>×</button>
+            </div>
+            <div className="calc-body">
+              <div className="calc-display">{calcState.display}</div>
+              <div className="calc-buttons">
+                <button className="calc-btn func" onClick={handleCalcClear}>CA</button>
+                <button className="calc-btn func" onClick={handleCalcBS}>BS</button>
+                <button className="calc-btn func" onClick={handleCalcPercent}>%</button>
+                <button className="calc-btn func op" onClick={() => handleCalcOperator('/')}>/</button>
+                
+                <button className="calc-btn num" onClick={() => handleCalcNumber('7')}>7</button>
+                <button className="calc-btn num" onClick={() => handleCalcNumber('8')}>8</button>
+                <button className="calc-btn num" onClick={() => handleCalcNumber('9')}>9</button>
+                <button className="calc-btn func op" onClick={() => handleCalcOperator('*')}>*</button>
+                
+                <button className="calc-btn num" onClick={() => handleCalcNumber('4')}>4</button>
+                <button className="calc-btn num" onClick={() => handleCalcNumber('5')}>5</button>
+                <button className="calc-btn num" onClick={() => handleCalcNumber('6')}>6</button>
+                <button className="calc-btn func op" onClick={() => handleCalcOperator('-')}>-</button>
+                
+                <button className="calc-btn num" onClick={() => handleCalcNumber('1')}>1</button>
+                <button className="calc-btn num" onClick={() => handleCalcNumber('2')}>2</button>
+                <button className="calc-btn num" onClick={() => handleCalcNumber('3')}>3</button>
+                <button className="calc-btn func op" onClick={() => handleCalcOperator('+')}>+</button>
+                
+                <button className="calc-btn num zero" onClick={() => handleCalcNumber('0')}>0</button>
+                <button className="calc-btn num" onClick={handleCalcDot}>.</button>
+                <button className="calc-btn equals" onClick={handleCalcEquals}>=</button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <footer className="cbt-footer">
         <div className="footer-left">
-          <button className="footer-btn">🧮 계산기</button>
+          <button className={`footer-btn ${state.showCalculator ? 'active-footer' : ''}`} onClick={() => setState(prev => ({ ...prev, showCalculator: !prev.showCalculator }))}>🧮 계산기</button>
           <button className="footer-btn">🎨 그림판</button>
         </div>
         <div className="footer-center" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

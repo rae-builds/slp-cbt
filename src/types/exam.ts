@@ -26,6 +26,7 @@ export interface ExamState {
   timeLeft: number; // in seconds
   fontSize: number; // 80, 100, 125
   layout: '1-pane' | '2-pane';
-  highlighterMode: 'on' | 'off' | 'erase';
+  highlighterMode: 'on' | 'off';
   isFinished: boolean;
+  showCalculator: boolean;
 }
