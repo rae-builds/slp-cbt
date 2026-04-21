@@ -31,6 +31,8 @@ export interface ExamState {
   showCalculator: boolean;
   showDrawingBoard: boolean;
   drawingData: string | null;
+  showMemo: boolean;
+  activeMemoQuestionId: number | null;
   showQuestionView: boolean;
   questionViewTab: 'all' | 'marked' | 'unsolved';
 }

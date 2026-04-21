@@ -169,6 +169,56 @@ const DrawingBoard = ({
   );
 };
 
+const MemoPad = ({ 
+  visibleQuestions,
+  activeQuestionId,
+  memos,
+  onTabSelect,
+  onClose, 
+  onChange, 
+  onDelete 
+}: { 
+  visibleQuestions: Question[],
+  activeQuestionId: number,
+  memos: Record<number, string>,
+  onTabSelect: (id: number) => void,
+  onClose: () => void, 
+  onChange: (id: number, text: string) => void,
+  onDelete: (id: number) => void
+}) => {
+  return (
+    <div className="memo-pad-container" onClick={(e) => e.stopPropagation()}>
+      <div className="memo-header">
+        <span className="memo-title">1문항 메모</span>
+        <button className="memo-close" onClick={onClose}>×</button>
+      </div>
+      <div className="memo-tabs-bar">
+        {visibleQuestions.map(q => (
+          <button 
+            key={q.id}
+            className={`memo-tab-item ${activeQuestionId === q.id ? 'active' : ''}`}
+            onClick={() => onTabSelect(q.id)}
+          >
+            {q.number}번
+          </button>
+        ))}
+      </div>
+      <div className="memo-body">
+        <textarea 
+          className="memo-textarea"
+          value={memos[activeQuestionId] || ''}
+          onChange={(e) => onChange(activeQuestionId, e.target.value)}
+          placeholder={`${visibleQuestions.find(q => q.id === activeQuestionId)?.number}번 문항 메모 입력`}
+          autoFocus
+        />
+      </div>
+      <div className="memo-footer">
+        <button className="memo-delete-btn" onClick={() => onDelete(activeQuestionId)}>내용 삭제</button>
+      </div>
+    </div>
+  );
+};
+
 const QuestionViewModal = ({ 
   onClose, 
   questions, 
@@ -280,6 +330,8 @@ export default function CBTApp() {
     showCalculator: false,
     showDrawingBoard: false,
     drawingData: null,
+    showMemo: false,
+    activeMemoQuestionId: null,
     showQuestionView: false,
     questionViewTab: 'all',
   });
@@ -355,6 +407,45 @@ export default function CBTApp() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Memo Auto-popup logic
+  useEffect(() => {
+    const visibleQIds = state.layout === '2-pane'
+      ? [mockQuestions[state.currentQuestionIndex]?.id, mockQuestions[state.currentQuestionIndex + 1]?.id].filter(Boolean)
+      : [mockQuestions[state.currentQuestionIndex]?.id].filter(Boolean);
+
+    const firstWithContent = visibleQIds.find(id => state.memos[id as number] && state.memos[id as number].trim() !== '');
+    
+    if (firstWithContent) {
+      setState(prev => ({
+        ...prev,
+        showMemo: true,
+        activeMemoQuestionId: prev.activeMemoQuestionId && visibleQIds.includes(prev.activeMemoQuestionId) 
+          ? prev.activeMemoQuestionId 
+          : (firstWithContent as number)
+      }));
+    } else {
+      setState(prev => ({
+        ...prev,
+        showMemo: false,
+        activeMemoQuestionId: visibleQIds[0] as number
+      }));
+    }
+  }, [state.currentQuestionIndex]);
+
+  const handleMemoChange = (id: number, text: string) => {
+    setState(prev => ({
+      ...prev,
+      memos: { ...prev.memos, [id]: text }
+    }));
+  };
+
+  const handleMemoDelete = (id: number) => {
+    setState(prev => ({
+      ...prev,
+      memos: { ...prev.memos, [id]: '' }
+    }));
+  };
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -549,7 +640,14 @@ export default function CBTApp() {
               <span className={`tool-icon-check ${state.markedQuestions.has(q.id) ? 'active' : ''}`}>✓</span>
               <span className="tool-text">체크문제</span>
             </button>
-            <button className="tool-btn">
+            <button 
+              className={`tool-btn ${state.showMemo && state.activeMemoQuestionId === q.id ? 'active' : ''}`}
+              onClick={() => setState(prev => ({ 
+                ...prev, 
+                showMemo: true,
+                activeMemoQuestionId: q.id
+              }))}
+            >
               <span className="tool-icon-memo">📝</span>
               <span className="tool-text">메모</span>
             </button>
@@ -720,6 +818,14 @@ export default function CBTApp() {
             {mockQuestions.map((q, index) => (
               <div key={q.id} className="answer-row">
                 <div className="answer-row-left">
+                  <div className="memo-column">
+                    {state.memos[q.id] && state.memos[q.id].trim() !== '' && (
+                      <svg className="memo-icon-v2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M11 4H4V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V11" stroke="#F57C00" strokeWidth="2.5" strokeLinecap="round"/>
+                        <path d="M9 15H12L20 7L17 4L9 12V15Z" fill="#FFA726" stroke="#F57C00" strokeWidth="1.5" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
                   <div className="check-column">
                     {state.markedQuestions.has(q.id) && <span className="red-check-small">✓</span>}
                   </div>
@@ -793,6 +899,22 @@ export default function CBTApp() {
           onTabChange={(tab) => setState(prev => ({ ...prev, questionViewTab: tab }))}
           state={state}
           onNavigate={(index) => setState(prev => ({ ...prev, currentQuestionIndex: index, showQuestionView: false }))}
+        />
+      )}
+
+      {mounted && state.showMemo && (
+        <MemoPad
+          visibleQuestions={
+            state.layout === '2-pane'
+              ? [mockQuestions[state.currentQuestionIndex], mockQuestions[state.currentQuestionIndex + 1]].filter(Boolean)
+              : [mockQuestions[state.currentQuestionIndex]]
+          }
+          activeQuestionId={state.activeMemoQuestionId || mockQuestions[state.currentQuestionIndex].id}
+          memos={state.memos}
+          onTabSelect={(id) => setState(prev => ({ ...prev, activeMemoQuestionId: id }))}
+          onClose={() => setState(prev => ({ ...prev, showMemo: false }))}
+          onChange={handleMemoChange}
+          onDelete={handleMemoDelete}
         />
       )}
 

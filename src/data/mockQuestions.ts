@@ -58,6 +58,6 @@ export const mockQuestions: Question[] = [
     ],
     correctAnswer: 4,
     type: 'video',
-    mediaUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' // Using a sample video, will change if user provides one.
+    mediaUrl: '/videos/손씻는영상.mp4'
   }
 ];
