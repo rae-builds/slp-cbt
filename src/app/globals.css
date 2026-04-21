@@ -35,11 +35,15 @@ a {
   text-decoration: none;
 }
 
-button {
+button, 
+input, 
+select, 
+textarea {
   cursor: pointer;
   border: none;
   background: none;
   font-family: inherit;
+  font-size: inherit;
 }
 
 /* CBT Specific Layout */
@@ -379,13 +383,16 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 55px;
-  height: 55px;
+  min-width: 5.5em;
+  height: 5.2em;
   background-color: #f0f4f8;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 5px;
+  border-radius: 0.6em;
+  padding: 0.5em;
   transition: all 0.2s;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 1em; /* Ensure it starts from parent scale */
 }
 
 .tool-btn-small {
@@ -393,16 +400,19 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 40px;
+  min-width: 4.5em;
+  height: 3.2em;
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 0.65rem;
+  border-radius: 0.4em;
+  font-size: 0.75em;
   font-weight: bold;
-  line-height: 1.1;
+  line-height: 1.2;
   color: #4a5568;
   transition: all 0.2s;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0 0.5em;
 }
 
 .tool-btn-small.active-green {
@@ -436,9 +446,9 @@ button {
 }
 
 .tool-text {
-  font-size: 0.75em;
+  font-size: 0.85em;
   font-weight: bold;
-  color: #2d3748;
+  color: #4a5568;
 }
 
 .answer-sheet {
@@ -608,12 +618,14 @@ button {
 .wrong-btn {
   background-color: #f1f5f9;
   color: #64748b;
-  font-size: 0.8rem;
+  font-size: 0.8em;
   font-weight: bold;
-  padding: 4px 12px;
-  border-radius: 4px;
+  padding: 0.3em 0.8em;
+  border-radius: 0.3em;
   border: 1px solid #e2e8f0;
-  min-width: 50px;
+  min-width: 3.2em;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .wrong-btn.active {

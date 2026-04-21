@@ -479,10 +479,16 @@ export default function CBTApp() {
   };
 
   const handleQuestionChange = (index: number) => {
-    setState(prev => ({
-      ...prev,
-      currentQuestionIndex: Math.max(0, Math.min(index, mockQuestions.length - 1))
-    }));
+    setState(prev => {
+      let targetIndex = index;
+      if (prev.layout === '2-pane') {
+        targetIndex = Math.floor(index / 2) * 2;
+      }
+      return {
+        ...prev,
+        currentQuestionIndex: Math.max(0, Math.min(targetIndex, mockQuestions.length - 1))
+      };
+    });
   };
 
   const handleFinish = () => {
@@ -787,13 +793,16 @@ export default function CBTApp() {
         </div>
         <div className="footer-center" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           {state.currentQuestionIndex > 0 && (
-            <button className="footer-btn nav-btn" onClick={() => handleQuestionChange(state.currentQuestionIndex - 1)}>◀ 이전</button>
+            <button className="footer-btn nav-btn" onClick={() => navigate('prev')}>◀ 이전</button>
           )}
           <div className="footer-status">
-            {state.currentQuestionIndex + 1}/{mockQuestions.length}
+            {state.layout === '2-pane' 
+              ? `${state.currentQuestionIndex + 1}-${Math.min(state.currentQuestionIndex + 2, mockQuestions.length)}/${mockQuestions.length}`
+              : `${state.currentQuestionIndex + 1}/${mockQuestions.length}`
+            }
           </div>
-          {state.currentQuestionIndex < mockQuestions.length - 1 && (
-            <button className="footer-btn nav-btn" onClick={() => handleQuestionChange(state.currentQuestionIndex + 1)}>다음 ▶</button>
+          {state.currentQuestionIndex < (state.layout === '2-pane' ? mockQuestions.length - 2 : mockQuestions.length - 1) && (
+            <button className="footer-btn nav-btn" onClick={() => navigate('next')}>다음 ▶</button>
           )}
         </div>
         <div className="footer-right">
