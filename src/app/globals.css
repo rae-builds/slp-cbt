@@ -1453,3 +1453,15 @@ textarea {
   align-items: center;
   justify-content: center;
 }
+
+/* Question Scrolling & Padding */
+.question-content {
+  overflow-y: auto;
+  height: 100%;
+}
+
+.question-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 40px 80px 40px; /* Stronger bottom padding for visual comfort */
+}

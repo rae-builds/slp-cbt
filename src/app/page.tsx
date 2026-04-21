@@ -626,7 +626,7 @@ export default function CBTApp() {
     <div
       key={q.id}
       className={`question-content ${state.highlighterMode === 'on' ? 'cursor-pencil' : ''}`}
-      style={{ flex: 1, padding: '40px 0', borderRight: state.layout === '2-pane' ? '1px solid #eee' : 'none' }}
+      style={{ flex: 1, borderRight: state.layout === '2-pane' ? '1px solid #eee' : 'none' }}
       onMouseUp={(e) => handleHighlight(q.id, e)}
     >
       <div className="question-inner">
