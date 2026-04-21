@@ -1,8 +1,266 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { mockQuestions } from '@/data/mockQuestions';
 import { Question, ExamState } from '@/types/exam';
+
+const DrawingBoard = ({ isOpen, onClose, drawingData, onSave }: { isOpen: boolean, onClose: () => void, drawingData: string | null, onSave: (data: string) => void }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
+  const [color, setColor] = useState('#000000');
+  const [lineWidth, setLineWidth] = useState(2);
+  const lastPoint = useRef<{ x: number, y: number } | null>(null);
+
+  useEffect(() => {
+    if (isOpen && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+
+      // Set initial canvas state
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (drawingData) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = drawingData;
+      }
+    }
+  }, [isOpen, drawingData]);
+
+  const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
+
+  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    const { x, y } = getCoordinates(e);
+    lastPoint.current = { x, y };
+    setIsDrawing(true);
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing || !lastPoint.current || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const { x, y } = getCoordinates(e);
+    
+    ctx.beginPath();
+    ctx.globalCompositeOperation = tool === 'eraser' ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    
+    lastPoint.current = { x, y };
+  };
+
+  const stopDrawing = () => {
+    if (isDrawing && canvasRef.current) {
+      onSave(canvasRef.current.toDataURL());
+    }
+    setIsDrawing(false);
+    lastPoint.current = null;
+  };
+
+  const clearAll = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (ctx && canvas) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      onSave(canvas.toDataURL());
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="drawing-modal-overlay">
+      <div className="drawing-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="drawing-header">
+          <span className="drawing-title">그림판</span>
+          <button className="drawing-close" onClick={onClose}>×</button>
+        </div>
+        <div className="drawing-body">
+          <canvas
+            ref={canvasRef}
+            width={800}
+            height={500}
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseOut={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+            className="drawing-canvas"
+          />
+        </div>
+        <div className="drawing-footer">
+          <div className="drawing-tools-left">
+            <button 
+              className={`tool-icon-btn ${tool === 'pen' ? 'active' : ''}`} 
+              onClick={() => setTool('pen')}
+              title="펜"
+            >
+              ✏️
+            </button>
+            <button 
+              className={`tool-icon-btn ${tool === 'eraser' ? 'active' : ''}`} 
+              onClick={() => setTool('eraser')}
+              title="지우개"
+            >
+              🧼
+            </button>
+            <div className="tool-separator"></div>
+            <div className="color-palette">
+              {['#000000', '#ff0000', '#0000ff', '#008000', '#ffa500', '#800080'].map(c => (
+                <button
+                  key={c}
+                  className={`color-btn ${color === c && tool === 'pen' ? 'active' : ''}`}
+                  style={{ backgroundColor: c }}
+                  onClick={() => {
+                    setColor(c);
+                    setTool('pen');
+                  }}
+                />
+              ))}
+            </div>
+            <div className="tool-separator"></div>
+            <select 
+              className="thickness-select" 
+              value={lineWidth} 
+              onChange={(e) => setLineWidth(Number(e.target.value))}
+            >
+              <option value={1}>1px</option>
+              <option value={2}>2px</option>
+              <option value={4}>4px</option>
+              <option value={8}>8px</option>
+              <option value={12}>12px</option>
+            </select>
+          </div>
+          <button className="clear-all-btn" onClick={clearAll}>전체지움</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const QuestionViewModal = ({ 
+  isOpen, 
+  onClose, 
+  questions, 
+  activeTab, 
+  onTabChange, 
+  state, 
+  onNavigate 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  questions: Question[], 
+  activeTab: 'all' | 'marked' | 'unsolved', 
+  onTabChange: (tab: 'all' | 'marked' | 'unsolved') => void,
+  state: ExamState,
+  onNavigate: (index: number) => void
+}) => {
+  if (!isOpen) return null;
+
+  const markedCount = questions.filter(q => state.markedQuestions.has(q.id)).length;
+  const unsolvedCount = questions.filter(q => !state.answers[q.id]).length;
+
+  const filteredQuestions = questions.filter(q => {
+    if (activeTab === 'marked') return state.markedQuestions.has(q.id);
+    if (activeTab === 'unsolved') return !state.answers[q.id];
+    return true;
+  });
+
+  return (
+    <div className="qv-modal-overlay">
+      <div className="qv-modal">
+        <div className="qv-header">
+          <span className="qv-title">문제보기</span>
+          <button className="qv-close" onClick={onClose}>×</button>
+        </div>
+        <div className="qv-info-bar">
+          <p>※ 전체/체크/안 푼 문제 탭을 클릭하여 해당 문제를 확인할 수 있습니다.</p>
+          <p>※ 문제를 더블클릭 시 해당 문제로 이동하여 답안 수정이 가능합니다.</p>
+        </div>
+        <div className="qv-tabs">
+          <button className={`qv-tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => onTabChange('all')}>
+            전체 문제 ({questions.length})
+          </button>
+          <button className={`qv-tab ${activeTab === 'marked' ? 'active' : ''}`} onClick={() => onTabChange('marked')}>
+            체크 문제 ({markedCount})
+          </button>
+          <button className={`qv-tab ${activeTab === 'unsolved' ? 'active' : ''}`} onClick={() => onTabChange('unsolved')}>
+            안 푼 문제 ({unsolvedCount})
+          </button>
+        </div>
+        <div className="qv-body">
+          <div className="qv-grid">
+            {filteredQuestions.map(q => (
+              <div 
+                key={q.id} 
+                className="qv-card" 
+                onDoubleClick={() => onNavigate(questions.indexOf(q))}
+              >
+                <div className="qv-card-num">{q.number}</div>
+                <div className="qv-card-content">
+                  <div className="qv-card-question">{q.question}</div>
+                  
+                  {q.mediaUrl && (
+                    <div className="qv-card-media">
+                      {q.type === 'image' ? (
+                        <div className="qv-card-image-box">
+                          <img src={q.mediaUrl} alt="Media" className="qv-card-img" />
+                          <div className="qv-card-media-label">[사진1]</div>
+                        </div>
+                      ) : (
+                        <div className="qv-card-video-box">
+                          <div className="qv-card-video-placeholder">
+                            <div className="qv-play-icon">▶</div>
+                          </div>
+                          <div className="qv-video-warning">이 영상은 소리가 포함되어 있습니다.</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="qv-card-options">
+                    {q.options.map(opt => (
+                      <div key={opt.id} className="qv-card-option">
+                        <div className={`qv-card-radio ${state.answers[q.id] === opt.id ? 'selected' : ''}`}>{opt.id}</div>
+                        <span className="qv-card-opt-text">{opt.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function CBTApp() {
   const [state, setState] = useState<ExamState>({
@@ -18,6 +276,10 @@ export default function CBTApp() {
     highlighterMode: 'off',
     isFinished: false,
     showCalculator: false,
+    showDrawingBoard: false,
+    drawingData: null,
+    showQuestionView: false,
+    questionViewTab: 'all',
   });
 
   const [calcState, setCalcState] = useState({
@@ -214,6 +476,17 @@ export default function CBTApp() {
 
       return { ...prev, currentQuestionIndex: nextIndex };
     });
+  };
+
+  const handleQuestionChange = (index: number) => {
+    setState(prev => ({
+      ...prev,
+      currentQuestionIndex: Math.max(0, Math.min(index, mockQuestions.length - 1))
+    }));
+  };
+
+  const handleFinish = () => {
+    setState(prev => ({ ...prev, isFinished: true }));
   };
 
   // When switching layout, ensure the index is appropriate
@@ -488,30 +761,52 @@ export default function CBTApp() {
             </div>
           </div>
         )}
+
+        <DrawingBoard
+          isOpen={state.showDrawingBoard}
+          onClose={() => setState(prev => ({ ...prev, showDrawingBoard: false }))}
+          drawingData={state.drawingData}
+          onSave={(data) => setState(prev => ({ ...prev, drawingData: data }))}
+        />
+
+        <QuestionViewModal
+          isOpen={state.showQuestionView}
+          onClose={() => setState(prev => ({ ...prev, showQuestionView: false }))}
+          questions={mockQuestions}
+          activeTab={state.questionViewTab}
+          onTabChange={(tab) => setState(prev => ({ ...prev, questionViewTab: tab }))}
+          state={state}
+          onNavigate={(index) => setState(prev => ({ ...prev, currentQuestionIndex: index, showQuestionView: false }))}
+        />
       </main>
 
       <footer className="cbt-footer">
         <div className="footer-left">
           <button className={`footer-btn ${state.showCalculator ? 'active-footer' : ''}`} onClick={() => setState(prev => ({ ...prev, showCalculator: !prev.showCalculator }))}>🧮 계산기</button>
-          <button className="footer-btn">🎨 그림판</button>
+          <button className={`footer-btn ${state.showDrawingBoard ? 'active-footer' : ''}`} onClick={() => setState(prev => ({ ...prev, showDrawingBoard: !prev.showDrawingBoard }))}>🎨 그림판</button>
         </div>
-        <div className="footer-center" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="footer-center" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           {state.currentQuestionIndex > 0 && (
-            <button className="footer-btn-nav" onClick={() => navigate('prev')}>◀ 이전</button>
+            <button className="footer-btn nav-btn" onClick={() => handleQuestionChange(state.currentQuestionIndex - 1)}>◀ 이전</button>
           )}
-          <span style={{ fontWeight: 'bold' }}>
-            {state.layout === '2-pane'
-              ? `${state.currentQuestionIndex + 1}-${Math.min(state.currentQuestionIndex + 2, mockQuestions.length)} / ${mockQuestions.length}`
-              : `${state.currentQuestionIndex + 1} / ${mockQuestions.length}`
-            }
-          </span>
-          <button className="footer-btn-nav" onClick={() => navigate('next')} disabled={state.currentQuestionIndex >= mockQuestions.length - (state.layout === '2-pane' ? 2 : 1)}>다음 ▶</button>
+          <div className="footer-status">
+            {state.currentQuestionIndex + 1}/{mockQuestions.length}
+          </div>
+          {state.currentQuestionIndex < mockQuestions.length - 1 && (
+            <button className="footer-btn nav-btn" onClick={() => handleQuestionChange(state.currentQuestionIndex + 1)}>다음 ▶</button>
+          )}
         </div>
         <div className="footer-right">
-          <div className="status-badge">📄 전체 문제 ({mockQuestions.length})</div>
-          <div className="status-badge">✔️ 체크 문제 ({state.markedQuestions.size})</div>
-          <div className="status-badge">📓 안푼 문제 ({unansweredCount})</div>
-          <button className="exit-btn" onClick={() => setState(prev => ({ ...prev, isFinished: true }))}>↪ 연습 종료</button>
+          <button className="footer-btn qv-btn" onClick={() => setState(prev => ({ ...prev, showQuestionView: true, questionViewTab: 'all' }))}>
+            📑 전체 문제 ({mockQuestions.length})
+          </button>
+          <button className="footer-btn qv-btn" onClick={() => setState(prev => ({ ...prev, showQuestionView: true, questionViewTab: 'marked' }))}>
+            ✔️ 체크 문제 ({state.markedQuestions.size})
+          </button>
+          <button className="footer-btn qv-btn" onClick={() => setState(prev => ({ ...prev, showQuestionView: true, questionViewTab: 'unsolved' }))}>
+            📓 안푼 문제 ({mockQuestions.filter(q => !state.answers[q.id]).length})
+          </button>
+          <button className="footer-btn finish-btn" onClick={handleFinish}>🔚 연습 종료</button>
         </div>
       </footer>
     </div>

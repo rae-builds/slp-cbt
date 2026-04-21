@@ -29,4 +29,8 @@ export interface ExamState {
   highlighterMode: 'on' | 'off';
   isFinished: boolean;
   showCalculator: boolean;
+  showDrawingBoard: boolean;
+  drawingData: string | null;
+  showQuestionView: boolean;
+  questionViewTab: 'all' | 'marked' | 'unsolved';
 }
