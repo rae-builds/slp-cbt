@@ -4,7 +4,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { mockQuestions } from '@/data/mockQuestions';
 import { Question, ExamState } from '@/types/exam';
 
-const DrawingBoard = ({ isOpen, onClose, drawingData, onSave }: { isOpen: boolean, onClose: () => void, drawingData: string | null, onSave: (data: string) => void }) => {
+const DrawingBoard = ({ 
+  onClose, 
+  drawingData, 
+  onSave 
+}: { 
+  onClose: () => void, 
+  drawingData: string | null, 
+  onSave: (data: string) => void 
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
@@ -13,12 +21,11 @@ const DrawingBoard = ({ isOpen, onClose, drawingData, onSave }: { isOpen: boolea
   const lastPoint = useRef<{ x: number, y: number } | null>(null);
 
   useEffect(() => {
-    if (isOpen && canvasRef.current) {
+    if (canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return;
 
-      // Set initial canvas state
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
@@ -31,14 +38,14 @@ const DrawingBoard = ({ isOpen, onClose, drawingData, onSave }: { isOpen: boolea
         img.src = drawingData;
       }
     }
-  }, [isOpen, drawingData]);
+  }, [drawingData]);
 
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     return {
       x: clientX - rect.left,
       y: clientY - rect.top
@@ -90,10 +97,8 @@ const DrawingBoard = ({ isOpen, onClose, drawingData, onSave }: { isOpen: boolea
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="drawing-modal-overlay">
+    <div className="drawing-modal-overlay" onClick={onClose}>
       <div className="drawing-modal" onClick={(e) => e.stopPropagation()}>
         <div className="drawing-header">
           <span className="drawing-title">그림판</span>
@@ -165,7 +170,6 @@ const DrawingBoard = ({ isOpen, onClose, drawingData, onSave }: { isOpen: boolea
 };
 
 const QuestionViewModal = ({ 
-  isOpen, 
   onClose, 
   questions, 
   activeTab, 
@@ -173,7 +177,6 @@ const QuestionViewModal = ({
   state, 
   onNavigate 
 }: { 
-  isOpen: boolean, 
   onClose: () => void, 
   questions: Question[], 
   activeTab: 'all' | 'marked' | 'unsolved', 
@@ -181,8 +184,6 @@ const QuestionViewModal = ({
   state: ExamState,
   onNavigate: (index: number) => void
 }) => {
-  if (!isOpen) return null;
-
   const markedCount = questions.filter(q => state.markedQuestions.has(q.id)).length;
   const unsolvedCount = questions.filter(q => !state.answers[q.id]).length;
 
@@ -193,8 +194,8 @@ const QuestionViewModal = ({
   });
 
   return (
-    <div className="qv-modal-overlay">
-      <div className="qv-modal">
+    <div className="qv-modal-overlay" onClick={onClose}>
+      <div className="qv-modal" onClick={(e) => e.stopPropagation()}>
         <div className="qv-header">
           <span className="qv-title">문제보기</span>
           <button className="qv-close" onClick={onClose}>×</button>
@@ -263,6 +264,7 @@ const QuestionViewModal = ({
 };
 
 export default function CBTApp() {
+  const [mounted, setMounted] = useState(false);
   const [state, setState] = useState<ExamState>({
     currentQuestionIndex: 0,
     answers: {},
@@ -281,6 +283,10 @@ export default function CBTApp() {
     showQuestionView: false,
     questionViewTab: 'all',
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [calcState, setCalcState] = useState({
     display: '0',
@@ -731,52 +737,56 @@ export default function CBTApp() {
           </div>
         </aside>
 
-        {state.showCalculator && (
-          <div className="calculator-popup">
-            <div className="calc-header">
-              <span>계산기</span>
-              <button className="calc-close" onClick={() => setState(prev => ({ ...prev, showCalculator: false }))}>×</button>
-            </div>
-            <div className="calc-body">
-              <div className="calc-display">{calcState.display}</div>
-              <div className="calc-buttons">
-                <button className="calc-btn func" onClick={handleCalcClear}>CA</button>
-                <button className="calc-btn func" onClick={handleCalcBS}>BS</button>
-                <button className="calc-btn func" onClick={handleCalcPercent}>%</button>
-                <button className="calc-btn func op" onClick={() => handleCalcOperator('/')}>/</button>
-                
-                <button className="calc-btn num" onClick={() => handleCalcNumber('7')}>7</button>
-                <button className="calc-btn num" onClick={() => handleCalcNumber('8')}>8</button>
-                <button className="calc-btn num" onClick={() => handleCalcNumber('9')}>9</button>
-                <button className="calc-btn func op" onClick={() => handleCalcOperator('*')}>*</button>
-                
-                <button className="calc-btn num" onClick={() => handleCalcNumber('4')}>4</button>
-                <button className="calc-btn num" onClick={() => handleCalcNumber('5')}>5</button>
-                <button className="calc-btn num" onClick={() => handleCalcNumber('6')}>6</button>
-                <button className="calc-btn func op" onClick={() => handleCalcOperator('-')}>-</button>
-                
-                <button className="calc-btn num" onClick={() => handleCalcNumber('1')}>1</button>
-                <button className="calc-btn num" onClick={() => handleCalcNumber('2')}>2</button>
-                <button className="calc-btn num" onClick={() => handleCalcNumber('3')}>3</button>
-                <button className="calc-btn func op" onClick={() => handleCalcOperator('+')}>+</button>
-                
-                <button className="calc-btn num zero" onClick={() => handleCalcNumber('0')}>0</button>
-                <button className="calc-btn num" onClick={handleCalcDot}>.</button>
-                <button className="calc-btn equals" onClick={handleCalcEquals}>=</button>
-              </div>
+      </main>
+
+      {/* Modals outside main for better stacking context */}
+      {mounted && state.showCalculator && (
+        <div className="calculator-popup">
+          <div className="calc-header">
+            <span>계산기</span>
+            <button className="calc-close" onClick={() => setState(prev => ({ ...prev, showCalculator: false }))}>×</button>
+          </div>
+          <div className="calc-body">
+            <div className="calc-display">{calcState.display}</div>
+            <div className="calc-buttons">
+              <button className="calc-btn func" onClick={handleCalcClear}>CA</button>
+              <button className="calc-btn func" onClick={handleCalcBS}>BS</button>
+              <button className="calc-btn func" onClick={handleCalcPercent}>%</button>
+              <button className="calc-btn func op" onClick={() => handleCalcOperator('/')}>/</button>
+              
+              <button className="calc-btn num" onClick={() => handleCalcNumber('7')}>7</button>
+              <button className="calc-btn num" onClick={() => handleCalcNumber('8')}>8</button>
+              <button className="calc-btn num" onClick={() => handleCalcNumber('9')}>9</button>
+              <button className="calc-btn func op" onClick={() => handleCalcOperator('*')}>*</button>
+              
+              <button className="calc-btn num" onClick={() => handleCalcNumber('4')}>4</button>
+              <button className="calc-btn num" onClick={() => handleCalcNumber('5')}>5</button>
+              <button className="calc-btn num" onClick={() => handleCalcNumber('6')}>6</button>
+              <button className="calc-btn func op" onClick={() => handleCalcOperator('-')}>-</button>
+              
+              <button className="calc-btn num" onClick={() => handleCalcNumber('1')}>1</button>
+              <button className="calc-btn num" onClick={() => handleCalcNumber('2')}>2</button>
+              <button className="calc-btn num" onClick={() => handleCalcNumber('3')}>3</button>
+              <button className="calc-btn func op" onClick={() => handleCalcOperator('+')}>+</button>
+              
+              <button className="calc-btn num zero" onClick={() => handleCalcNumber('0')}>0</button>
+              <button className="calc-btn num" onClick={handleCalcDot}>.</button>
+              <button className="calc-btn equals" onClick={handleCalcEquals}>=</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
+      {mounted && state.showDrawingBoard && (
         <DrawingBoard
-          isOpen={state.showDrawingBoard}
           onClose={() => setState(prev => ({ ...prev, showDrawingBoard: false }))}
           drawingData={state.drawingData}
           onSave={(data) => setState(prev => ({ ...prev, drawingData: data }))}
         />
+      )}
 
+      {mounted && state.showQuestionView && (
         <QuestionViewModal
-          isOpen={state.showQuestionView}
           onClose={() => setState(prev => ({ ...prev, showQuestionView: false }))}
           questions={mockQuestions}
           activeTab={state.questionViewTab}
@@ -784,7 +794,7 @@ export default function CBTApp() {
           state={state}
           onNavigate={(index) => setState(prev => ({ ...prev, currentQuestionIndex: index, showQuestionView: false }))}
         />
-      </main>
+      )}
 
       <footer className="cbt-footer">
         <div className="footer-left">
