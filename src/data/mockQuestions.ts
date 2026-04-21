@@ -18,32 +18,32 @@ export const mockQuestions: Question[] = [
   {
     id: 2,
     number: 2,
-    question: "다음 사진의 꽃 이름으로 가장 적합한 것은?",
+    question: "다음은 후두 내시경으로 관찰한 성대의 모습이다. 이 질환의 명칭으로 옳은 것은?",
     options: [
-      { id: 1, text: "장미" },
-      { id: 2, text: "튤립" },
-      { id: 3, text: "코스모스" },
-      { id: 4, text: "해바라기" },
-      { id: 5, text: "백합" }
+      { id: 1, text: "성대 결절" },
+      { id: 2, text: "성대 폴립" },
+      { id: 3, text: "성대 마비" },
+      { id: 4, text: "후두암" },
+      { id: 5, text: "라인케 부종" }
     ],
-    correctAnswer: 3,
+    correctAnswer: 1,
     type: 'image',
-    mediaUrl: '/images/q2.jpg'
+    mediaUrl: '/images/q2_slp.png'
   },
   {
     id: 3,
     number: 3,
-    question: "다음은 우리나라의 세계문화유산 사진이다. 문화유산의 이름은?",
+    question: "다음의 조음기관 단면도에서 '혀끝과 윗잇몸'이 만나서 나는 소리(치조음)가 아닌 것은?",
     options: [
-      { id: 1, text: "황룡" },
-      { id: 2, text: "고인돌" },
-      { id: 3, text: "종묘" },
-      { id: 4, text: "석굴암" },
-      { id: 5, text: "움집" }
+      { id: 1, text: "/ㄴ/" },
+      { id: 2, text: "/ㄷ/" },
+      { id: 3, text: "/ㄹ/" },
+      { id: 4, text: "/ㅅ/" },
+      { id: 5, text: "/ㄱ/" }
     ],
-    correctAnswer: 2,
+    correctAnswer: 5,
     type: 'image',
-    mediaUrl: '/images/q3.jpg'
+    mediaUrl: '/images/q3_slp.png'
   },
   {
     id: 4,
