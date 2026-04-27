@@ -1121,7 +1121,7 @@ export default function CBTApp() {
             <div
               className="question-text"
               dangerouslySetInnerHTML={{
-                __html: state.highlightedContent[q.id] || q.text || q.question || ''
+                __html: state.highlightedContent[q.id] || q.question || ''
               }}
             />
           </div>
