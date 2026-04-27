@@ -670,7 +670,7 @@ export default function CBTApp() {
                 <tr><td className="final-info-label">응시번호</td><td>01010001</td></tr>
                 <tr><td className="final-info-label">성명</td><td>김국시</td></tr>
                 <tr><td className="final-info-label">현재 시간</td><td>{formatCurrentTime(currentTime)}</td></tr>
-                <tr><td className="final-info-label">푼 문제 / 전체문제</td><td>{Object.keys(state.answers).length} / {TOTAL_QUESTIONS_TOTAL}</td></tr>
+                <tr><td className="final-info-label">푼 문제 / 전체</td><td>{Object.keys(state.answers).length} / {TOTAL_QUESTIONS_TOTAL}</td></tr>
               </tbody>
             </table>
           </aside>

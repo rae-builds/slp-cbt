@@ -1799,17 +1799,18 @@ textarea {
 }
 
 .final-candidate-side {
-  width: 300px;
+  width: 280px; /* Slightly narrower */
   background-color: white;
   border: 1px solid #cbd5e0;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box; /* Padding is included in width */
-  overflow: hidden; /* Prevent any content from sticking out */
+  box-sizing: border-box;
+  overflow-y: auto; /* Allow scroll if content is too long */
+  max-height: 100%;
 }
 
 .final-photo-area {
-  padding: 20px;
+  padding: 15px; /* Tighter padding */
   display: flex;
   justify-content: center;
   border-bottom: 1px solid #e2e8f0;
@@ -1817,8 +1818,8 @@ textarea {
 }
 
 .final-photo {
-  width: 140px;
-  height: 180px;
+  width: 120px; /* Smaller photo */
+  height: 150px;
   background-color: #f8fafc;
   border: 1px solid #cbd5e0;
   display: flex;
@@ -1830,15 +1831,15 @@ textarea {
 .final-info-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* Force fixed column widths to prevent overflow */
+  table-layout: fixed;
 }
 
 .final-info-table td {
-  padding: 10px 12px;
+  padding: 8px 10px; /* Tighter vertical padding */
   border-bottom: 1px solid #e2e8f0;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  word-break: break-all; /* Break long words to stay within box */
+  font-size: 0.8rem; /* Slightly smaller font */
+  line-height: 1.4;
+  word-break: break-all;
   vertical-align: middle;
   color: #1e293b;
 }
